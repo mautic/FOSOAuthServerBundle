@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace FOS\OAuthServerBundle\DependencyInjection\Security\Factory;
 
-use Symfony\Bundle\SecurityBundle\DependencyInjection\Security\Factory\SecurityFactoryInterface;
+use Symfony\Bundle\SecurityBundle\DependencyInjection\Security\Factory\AuthenticatorFactoryInterface;
 use Symfony\Component\Config\Definition\Builder\NodeDefinition;
 use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -24,45 +24,33 @@ use Symfony\Component\DependencyInjection\Reference;
  *
  * @author Arnaud Le Blanc <arnaud.lb@gmail.com>
  */
-class OAuthFactory implements SecurityFactoryInterface
+class OAuthFactory implements AuthenticatorFactoryInterface
 {
-    /**
-     * {@inheritdoc}
-     */
-    public function create(ContainerBuilder $container, $id, $config, $userProvider, $defaultEntryPoint)
+    public function createAuthenticator(ContainerBuilder $container, string $firewallName, array $config, string $userProviderId): string|array
     {
-        $providerId = 'security.authentication.provider.fos_oauth_server.'.$id;
+        $providerId = 'security.authentication.provider.fos_oauth_server.'.$firewallName;
         $container
             ->setDefinition($providerId, new ChildDefinition('fos_oauth_server.security.authentication.provider'))
-            ->replaceArgument(0, new Reference($userProvider))
-            ->replaceArgument(2, new Reference('security.user_checker.'.$id))
+            ->replaceArgument(0, new Reference($userProviderId))
+            ->replaceArgument(2, new Reference('security.user_checker.'.$firewallName))
         ;
 
-        $listenerId = 'security.authentication.listener.fos_oauth_server.'.$id;
+        $listenerId = 'security.authentication.listener.fos_oauth_server.'.$firewallName;
         $container->setDefinition($listenerId, new ChildDefinition('fos_oauth_server.security.authentication.listener'));
 
         return [$providerId, $listenerId, 'fos_oauth_server.security.entry_point'];
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getPosition()
+    public function getPriority(): int
     {
-        return 'pre_auth';
+        return 0;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getKey()
+    public function getKey(): string
     {
         return 'fos_oauth';
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function addConfiguration(NodeDefinition $node)
     {
     }
